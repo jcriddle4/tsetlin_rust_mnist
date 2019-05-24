@@ -14,7 +14,7 @@ pub struct TsetlinSub {
     ,pub clause_output: Vec<u64>
     ,pub feedback_to_la: Vec<u64>
     ,pub feedback_to_clauses: Vec<u64>
-    ,pub prob_svalues: Vec<f64>
+    ,pub prob_svalues: Vec<f32>
     ,pub threshold: u64
     ,pub features: u64
     ,pub clauses: usize
@@ -35,7 +35,7 @@ pub struct TsetlinMachine {
     ,pub score: Vec<f64>
     ,pub id_num: u64
     ,pub life: u64
-    ,pub svalue: f64
+    ,pub svalue: f32
 }
 
 
@@ -95,7 +95,7 @@ fn d3(t: &mut TsetlinSub, j: usize, k: usize, b: usize) ->usize {
 }
 
 //Should find binomial rust code but this will only run once on setup so it should be a one time hit.
-fn calc_prob_array(svalue: f64, prob_svalues: &mut Vec<f64>){
+fn calc_prob_array(svalue: f32, prob_svalues: &mut Vec<f32>){
     let mut rng = rand::thread_rng();
     let mut count_array: Vec<u64> = vec![0; 32];
     let number_tests: u64 = 1_222_000;
@@ -103,7 +103,7 @@ fn calc_prob_array(svalue: f64, prob_svalues: &mut Vec<f64>){
     for i in 0..number_tests{
         let mut count: usize = 0;
         for j in 0..64{
-            let rfl: f64 = rng.gen();
+            let rfl: f32 = rng.gen();
             //println!(" rfl: {}", rfl);
             if(rfl < 1.0/svalue){
                 if(count >= 32){
@@ -116,8 +116,8 @@ fn calc_prob_array(svalue: f64, prob_svalues: &mut Vec<f64>){
     }
 
     for i in 0..prob_svalues.len(){
-        prob_svalues[i] = (count_array[i] as f64) / (number_tests as f64);
-        //println!(" probability of i:{}  prob:{}  count_array:{} ",i,prob_svalues[i],count_array[i]);
+        prob_svalues[i] = (count_array[i] as f32) / (number_tests as f32);
+        //println!(" probability of i:{}  prob:{:.6}  count_array:{}  svalue:{}",i,prob_svalues[i],count_array[i], svalue);
         if(prob_svalues[i] < 0.000001){
             break;
         }
@@ -161,11 +161,11 @@ pub fn init_tm(
     , classes: usize
     , state_bits: usize
     , id_num: u64
-    , svalue: f64
+    , svalue: f32
 ) -> TsetlinMachine {
     let la_chunks: usize = (((2 * features) - 1)/INT_SIZE + 1) as usize;
 
-    let mut prob_svalues: Vec<f64> = vec![0.0; 32];
+    let mut prob_svalues: Vec<f32> = vec![0.0; 32];
 
     calc_prob_array(svalue,&mut prob_svalues);
 
@@ -266,7 +266,7 @@ fn init_tm_sub(
     , classes: usize
     , state_bits: usize
     , la_chunks: usize
-    , prob_svalues: Vec<f64>
+    , prob_svalues: Vec<f32>
 ) -> TsetlinSub {
     let clause_chunks: usize = (((clauses-1) as u64)/INT_SIZE + 1) as usize;
     let filter = (!(0xffffffffffffffff << ((features*2) % INT_SIZE)));
@@ -535,15 +535,25 @@ fn tm_initialize_random_streams(tm_sub: &mut TsetlinSub, rng: &mut ThreadRng){
 
     for k in 0..tm_sub.la_chunks{
         tm_sub.feedback_to_la[k] = 0;
-        let mut rfl:f64 = rng.gen();
+        let mut rfl:f32 = rng.gen();
         let mut rnext: usize = 0;
-        //println!(" rfl:{}  rnext:{}  prob_svalues:{}",rfl,rnext,tm_sub.prob_svalues[rnext]);
+        /********************************************
+          The vector prob_svalues has a crudely calculated bionomial probability that a bit is set in our 64bit value.
+           So for example if svalue = 10 then:
+            prob_svalues[0] =  .9988
+            prob_svalues[1] =  .9904
+            prob_svalues[2] =  .9610
+            prob_svalues[3] =  .8937
+            prob_svalues[4] =  .7795
+            prob_svalues[5] =  .6272
+            ...
+        ********************************************/
         while (rfl < tm_sub.prob_svalues[rnext]) {
 
             //println!(" rfl:{}  rnext:{}  prob_svalues:{}",rfl,rnext,tm_sub.prob_svalues[rnext]);
-            let mut r: u64 = rng.gen();
-            r = r % INT_SIZE;
-            //We could end up setting the same bit over but I don't want to bother to check.
+            let mut r: u32 = rng.gen();
+            r = r & 0x00000003f;  // equal to r % 64
+            //We could end up setting the same bit over but I don't want to take the speed hit in order to check.
             tm_sub.feedback_to_la[k] |= (1 << r);
 
             rfl = rng.gen();

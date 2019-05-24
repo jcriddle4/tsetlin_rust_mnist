@@ -26,12 +26,9 @@ use rand::prelude::*;
 use rayon::prelude::*;
 
 use tsetlin::*;
-//use std::sync::mpsc::channel;
 use core::borrow::Borrow;
 
-
 const EPOCHS: u64 = 400;
-const SVALUE: u64 = 11;
 
 const NUMBER_OF_TRAINING_EXAMPLES: usize = 60000;
 const NUMBER_OF_TEST_EXAMPLES: usize = 10000;
@@ -47,7 +44,7 @@ fn read_file(
 {
     assert!(x_vec.len() == 0 && y_vec.len() == 0);
 
-    println!("starting initilization of vectors");
+    println!("starting initilization from file:{}",file_name);
 
     while x_vec.len() < num_examples{
         x_vec.push(vec![0; la_chunks]);
@@ -217,7 +214,8 @@ fn multi_threads(){
     let mut tm_array: Vec<TsetlinMachine>  = Vec::with_capacity(8);
 
     for i in 0..8 {
-        tm_array.push(init_tm(50, 784, 2000, 10, 8, i + 1, 10.0 + ((i as f64) / 2.0)));
+        // We are testing different svalues here as well
+        tm_array.push(init_tm(50, 784, 2000, 10, 8, i + 1, 9.0 + (i as f32)));
     }
 
     let mut x_train: Vec<Vec<u64>> = Vec::with_capacity(NUMBER_OF_TRAINING_EXAMPLES);
@@ -253,7 +251,10 @@ fn multi_threads(){
           , tm_array[0].features
     );
 
-    for loop_count in 0..EPOCHS {
+    let r:usize = rng.gen();
+    output_digit(& x_train, & y_train,r % NUMBER_OF_TRAINING_EXAMPLES);
+
+    for loop_count in 1..EPOCHS {
         let now = Instant::now();
 
         let cwd = match env::current_dir(){
@@ -317,11 +318,22 @@ fn multi_threads(){
 fn main() {
     let mut rng = rand::thread_rng();
 
-    multi_threads();
+    println!("");
+    println!("Run genetic multithreaded y/n:");
+    let mut reader = io::stdin();
+    let mut str: String = "".to_string();
 
-    //digit_tests(&mut rng);
-
-    println!("Hello, world!");
-
-    //Ok(())
+    let input = reader.read_line(&mut str);
+    match input {
+        Ok(s) => {
+            if str.to_lowercase().contains("y"){
+                println!("Running genetic multithreaded example");
+                multi_threads();
+            } else {
+                println!("Running single threaded example");
+                digit_tests(&mut rng);
+            }
+        }
+        Err(_) => {println!("Error reading input"); process::exit(0); }
+    }
 }
