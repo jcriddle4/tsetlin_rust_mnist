@@ -7,7 +7,7 @@ This code expects to run on a 64bit machine.
 
 ## Licence
 
-Copyright (c) 2019 Ole-Christoffer Granmo - Original C code
+Copyright (c) 2019 Ole-Christoffer Granmo - Original C code                        
 Copyright (c) 2019 Jay Riddle - Recoded into Rust. Added genetic and multithreaded. minor tweaks. 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
