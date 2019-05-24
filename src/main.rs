@@ -283,7 +283,7 @@ fn multi_threads(){
 
         println!("starting y_train eval");
         let score_idx = 0;
-        tm_array.par_iter_mut().for_each(|tm| { let _ = tm_eval(tm, &x_train, &y_train, y_train.len(), score_idx); });
+        tm_array.par_iter_mut().for_each(|tm| { let _ = tm_eval(tm, &x_train, &y_train, 19000, score_idx); });
         tm_array.sort_by(|b, a| a.score[score_idx].partial_cmp(&b.score[score_idx]).unwrap());
         for i in 0..tm_array.len() {
             println!(" Scores id_num:{}  life:{}  score0:{:.3}  score1:{:.3}  score2:{:.3}"
