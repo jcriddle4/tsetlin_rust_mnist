@@ -1,0 +1,17 @@
+[package]
+name = "tset"
+version = "0.1.0"
+authors = ["jcriddle <jcriddle4@yahoo.com>"]
+edition = "2018"
+
+[profile.dev]
+opt-level=3
+debug = true
+
+[profile.release]
+debug = true
+
+[dependencies]
+rand = "0.6"
+byteorder = "*"
+rayon = "*"
